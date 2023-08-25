@@ -1,0 +1,14 @@
+### GET request with a header
+GET http://localhost:8001/orders/all
+Accept: application/json
+
+### Send POST request with json body
+POST http://localhost:8001/orders/request
+Content-Type: application/json
+
+{
+  "id": 999,
+  "customer_id": 666,
+  "shopping_cart_id": 343,
+  "totalCost": 67000
+}
