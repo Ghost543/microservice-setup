@@ -87,7 +87,7 @@ func main() {
 	app.Use(compress.New())
 	app.Use(logger.New())
 
-	app.Get("api/orders/all", func(ctx *fiber.Ctx) error {
+	app.Get("api/orders", func(ctx *fiber.Ctx) error {
 		var orders []Order
 		db.Find(&orders)
 		for i, order := range orders {
