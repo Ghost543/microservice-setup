@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"github.com/gofiber/fiber/v2"
@@ -11,6 +12,7 @@ import (
 	"gorm.io/gorm"
 	"log"
 	"net/http"
+	"time"
 )
 
 type OrderStatus int8
@@ -214,6 +216,56 @@ func main() {
 		return ctx.Status(200).JSON(&fiber.Map{
 			"status": "Deleted",
 		})
+	})
+
+	app.Get("api/orders/:id/shipping", func(ctx *fiber.Ctx) error {
+		var order Order
+		db.First(&order, "id = ?", ctx.Params("id"))
+		var req map[string]uint
+		req = make(map[string]uint)
+		req["order_id"] = order.Id
+		req["customer_id"] = order.CustomerId
+		buff, err := json.Marshal(req)
+		if err != nil {
+			panic(err)
+		}
+		request, err := http.NewRequest("POST", "https://localhost:8080/api/shipping/receive", bytes.NewReader(buff))
+		if err != nil {
+			return err
+		}
+		request.Header.Set("Content-Type", "application/json")
+		client := http.Client{Timeout: 10 * time.Second}
+		do, err := client.Do(request)
+		if err != nil {
+			return err
+		}
+
+		return ctx.JSON(do)
+	})
+	app.Get("api/orders/:id/notify", func(ctx *fiber.Ctx) error {
+		var order Order
+		db.First(&order, "id = ?", ctx.Params("id"))
+		req := map[string]interface{}{
+			"customer_id": order.CustomerId,
+			"message":     fmt.Sprintf("order %s", order.Status.String()),
+		}
+
+		buff, err := json.Marshal(req)
+		if err != nil {
+			panic(err)
+		}
+		request, err := http.NewRequest("POST", "https://localhost:8081/notification/send", bytes.NewReader(buff))
+		if err != nil {
+			return err
+		}
+		request.Header.Set("Content-Type", "application/json")
+		client := http.Client{Timeout: 10 * time.Second}
+		do, err := client.Do(request)
+		if err != nil {
+			return err
+		}
+
+		return ctx.JSON(do)
 	})
 
 	log.Fatal(app.Listen(":8001"))
